@@ -10,7 +10,8 @@
     "build": "tsc -p server/tsconfig.json && vite build --config client/vite.config.ts",
     "typecheck": "tsc -p server/tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit",
     "test": "vitest run --config server/vitest.config.ts",
-    "test:watch": "vitest --config server/vitest.config.ts"
+    "test:watch": "vitest --config server/vitest.config.ts",
+    "eval": "tsx --tsconfig server/tsconfig.json eval/runner.ts"
   },
   "dependencies": {
     "@types/diff": "^7.0.2",

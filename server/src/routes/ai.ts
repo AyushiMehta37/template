@@ -49,6 +49,7 @@ aiRouter.post("/message", async (req, res) => {
         kind: "proposal",
         proposal: result.proposal,
         status: "pending",
+        telemetry: result.telemetry,
       };
       break;
     case "clarify":
@@ -57,6 +58,7 @@ aiRouter.post("/message", async (req, res) => {
         role: "assistant",
         kind: "clarify",
         question: result.question,
+        telemetry: result.telemetry,
       };
       break;
     case "refuse":
@@ -65,6 +67,7 @@ aiRouter.post("/message", async (req, res) => {
         role: "assistant",
         kind: "refuse",
         reason: result.reason,
+        telemetry: result.telemetry,
       };
       break;
     case "error":

@@ -17,7 +17,10 @@ Open http://localhost:5173. Try *"Create a SOAP note template for a physiotherap
 ```bash
 npm test          # 4 vitest suites, 39 tests
 npm run typecheck
+npm run eval      # runs the 20-prompt eval harness against the live model
 ```
+
+See [PROMPT_NOTES.md](PROMPT_NOTES.md) for the prompt iteration log (v1 → v4) — each version, the failure that drove the change, the eval delta where available. Eval reports land in [eval/results/](eval/results/) as JSON + Markdown per run.
 
 ## Design decisions
 
@@ -41,7 +44,7 @@ Drag-reorder UI, undo/redo, streaming, multi-template management, persistence, a
 
 ## What I'd do with more time
 
-Streaming, versioned snapshots with one-click revert, drag reorder, a real eval harness (see below) wired to PR checks, a per-session token budget.
+Streaming, versioned snapshots with one-click revert, drag reorder, the eval harness wired into PR checks (currently runnable but not gated), a per-session token budget, multi-turn eval cases.
 
 ---
 

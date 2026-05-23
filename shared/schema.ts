@@ -87,12 +87,23 @@ export type ChatTurn =
   | { role: "assistant"; content: string };
 
 export type AIResponse =
-  | { kind: "proposal"; proposal: ResolvedProposal }
-  | { kind: "clarify"; question: string }
-  | { kind: "refuse"; reason: string }
+  | { kind: "proposal"; proposal: ResolvedProposal; telemetry: Telemetry }
+  | { kind: "clarify"; question: string; telemetry: Telemetry }
+  | { kind: "refuse"; reason: string; telemetry: Telemetry }
   | { kind: "error"; message: string; retryable: boolean };
 
 export const MAX_USER_INPUT_LENGTH = 4000;
+
+/** Per-turn observability — captured server-side, attached to assistant messages. */
+export type Telemetry = {
+  model: string;
+  promptVersion: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  retries: number;
+  firstTryValid: boolean;
+};
 
 /** Persisted chat-panel message shape (client + server agree on this). */
 export type ChatMessage =
@@ -103,9 +114,22 @@ export type ChatMessage =
       kind: "proposal";
       proposal: ResolvedProposal;
       status: "pending" | "accepted" | "rejected";
+      telemetry?: Telemetry;
     }
-  | { id: string; role: "assistant"; kind: "clarify"; question: string }
-  | { id: string; role: "assistant"; kind: "refuse"; reason: string }
+  | {
+      id: string;
+      role: "assistant";
+      kind: "clarify";
+      question: string;
+      telemetry?: Telemetry;
+    }
+  | {
+      id: string;
+      role: "assistant";
+      kind: "refuse";
+      reason: string;
+      telemetry?: Telemetry;
+    }
   | {
       id: string;
       role: "assistant";

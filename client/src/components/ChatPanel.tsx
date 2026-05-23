@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { MAX_USER_INPUT_LENGTH, type ChatMessage } from "@shared/schema.ts";
+import {
+  MAX_USER_INPUT_LENGTH,
+  type ChatMessage,
+  type Telemetry,
+} from "@shared/schema.ts";
 import { DiffView } from "./DiffView.tsx";
 
 const STARTER_PROMPTS = [
@@ -156,28 +160,35 @@ function Message({
               onAccept={onAccept}
               onReject={onReject}
             />
+            <TelemetryFooter telemetry={msg.telemetry} align="left" />
           </div>
         </div>
       );
     case "clarify":
       return (
         <div className="flex justify-start">
-          <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 text-sm">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-1">
-              Clarifying question
+          <div className="max-w-[85%]">
+            <div className="rounded-2xl rounded-tl-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 text-sm">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-1">
+                Clarifying question
+              </div>
+              {msg.question}
             </div>
-            {msg.question}
+            <TelemetryFooter telemetry={msg.telemetry} align="left" />
           </div>
         </div>
       );
     case "refuse":
       return (
         <div className="flex justify-start">
-          <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 border border-slate-200 text-slate-700 px-3 py-2 text-sm">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
-              Out of scope
+          <div className="max-w-[85%]">
+            <div className="rounded-2xl rounded-tl-sm bg-slate-100 border border-slate-200 text-slate-700 px-3 py-2 text-sm">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                Out of scope
+              </div>
+              {msg.reason}
             </div>
-            {msg.reason}
+            <TelemetryFooter telemetry={msg.telemetry} align="left" />
           </div>
         </div>
       );
@@ -198,4 +209,26 @@ function Message({
         </div>
       );
   }
+}
+
+function TelemetryFooter({
+  telemetry,
+  align,
+}: {
+  telemetry?: Telemetry;
+  align: "left" | "right";
+}) {
+  if (!telemetry) return null;
+  const validityNote = telemetry.firstTryValid ? "" : ` · retried`;
+  return (
+    <div
+      className={`text-[10px] text-slate-400 mt-1 px-1 font-mono ${
+        align === "right" ? "text-right" : "text-left"
+      }`}
+    >
+      {telemetry.model} · {telemetry.latencyMs}ms · {telemetry.inputTokens} in /{" "}
+      {telemetry.outputTokens} out · prompt {telemetry.promptVersion}
+      {validityNote}
+    </div>
+  );
 }

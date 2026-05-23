@@ -5,11 +5,12 @@ import {
   RefuseSchema,
   type AIResponse,
   type ChatTurn,
+  type Telemetry,
   type Template,
 } from "@shared/schema.ts";
 import { resolveProposal } from "../template/diff.ts";
 import { getModel, getOpenAI } from "./client.ts";
-import { renderCurrentTemplate, SYSTEM_PROMPT } from "./prompt.ts";
+import { PROMPT_VERSION, renderCurrentTemplate, SYSTEM_PROMPT } from "./prompt.ts";
 import { TOOLS } from "./tools.ts";
 
 export type LLMCall = (
@@ -59,6 +60,13 @@ export async function propose(input: ProposeInput): Promise<AIResponse> {
     },
   ];
 
+  // Telemetry accumulators — added across both LLM calls if a retry fires.
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let retries = 0;
+  let firstTryValid = true;
+  const startedAt = Date.now();
+
   try {
     let response = await llmCall({
       model,
@@ -66,6 +74,8 @@ export async function propose(input: ProposeInput): Promise<AIResponse> {
       tools: TOOLS,
       tool_choice: "required",
     });
+    inputTokens += response.usage?.prompt_tokens ?? 0;
+    outputTokens += response.usage?.completion_tokens ?? 0;
 
     let toolCall = findToolCall(response);
     if (!toolCall) {
@@ -76,6 +86,8 @@ export async function propose(input: ProposeInput): Promise<AIResponse> {
 
     let validated = validate(toolCall.function.name, parseArgs(toolCall.function.arguments));
     if (validated.kind === "error") {
+      firstTryValid = false;
+      retries = 1;
       // Retry: feed the validation error back per OpenAI's tool-call protocol.
       const retryMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         ...baseMessages,
@@ -96,6 +108,8 @@ export async function propose(input: ProposeInput): Promise<AIResponse> {
         tools: TOOLS,
         tool_choice: "required",
       });
+      inputTokens += response.usage?.prompt_tokens ?? 0;
+      outputTokens += response.usage?.completion_tokens ?? 0;
       toolCall = findToolCall(response);
       if (!toolCall) {
         return retryableError(
@@ -113,16 +127,27 @@ export async function propose(input: ProposeInput): Promise<AIResponse> {
       }
     }
 
+    const telemetry: Telemetry = {
+      model,
+      promptVersion: PROMPT_VERSION,
+      inputTokens,
+      outputTokens,
+      latencyMs: Date.now() - startedAt,
+      retries,
+      firstTryValid,
+    };
+
     switch (validated.kind) {
       case "proposal":
         return {
           kind: "proposal",
           proposal: resolveProposal(input.currentTemplate, validated.proposal),
+          telemetry,
         };
       case "clarify":
-        return { kind: "clarify", question: validated.question };
+        return { kind: "clarify", question: validated.question, telemetry };
       case "refuse":
-        return { kind: "refuse", reason: validated.reason };
+        return { kind: "refuse", reason: validated.reason, telemetry };
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
